@@ -18,6 +18,7 @@
   "author": "alacret@4geeks.co",
   "license": "ISC",
   "dependencies": {
+    "crypto-browserify": "^3.12.0",
     "dotenv": "^5.0.1",
     "logger": "0.0.1",
     "npm": "^6.1.0",
