@@ -1,0 +1,28 @@
+{
+  "name": "payklever-scheduler",
+  "version": "1.0.0",
+  "description": "The Scheduler Module for The Payklever Campaign Manager",
+  "main": "app.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/4geeks"
+  },
+  "keywords": [
+    "payklever",
+    "scheduler",
+    "agenda"
+  ],
+  "author": "alacret@4geeks.co",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^5.0.1",
+    "logger": "0.0.1",
+    "npm": "^6.1.0",
+    "request": "^2.87.0",
+    "request-promise": "^4.2.2",
+    "winston": "^3.1.0"
+  }
+}
