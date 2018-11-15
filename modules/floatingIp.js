@@ -4,6 +4,8 @@ const LOG = require('logger').createLogger();
 const crypto = require('crypto'),
     algorithm = 'aes-256-ctr';
 
+const CryptoJS = require("react-native-crypto-js");
+
 const msleep = (n) => {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, n);
 };
@@ -61,17 +63,12 @@ const createGist = async () => {
 };
 
 const encrypt = (text) => {
-    const cipher = crypto.createCipher(algorithm, settings.SECRET);
-    let crypted = cipher.update(text, 'utf8', 'hex');
-    crypted += cipher.final('hex');
-    return crypted;
+    return CryptoJS.AES.encrypt(text, settings.SECRET).toString();
 }
 
 const decrypt = (text) => {
-    const decipher = crypto.createDecipher(algorithm, settings.SECRET);
-    let dec = decipher.update(text, 'hex', 'utf8');
-    dec += decipher.final('utf8');
-    return dec;
+    let bytes = CryptoJS.AES.decrypt(text, settings.SECRET);
+    return bytes.toString(CryptoJS.enc.Utf8);
 };
 
 /**
@@ -79,9 +76,9 @@ const decrypt = (text) => {
  * @return {Promise<*>}
  */
 const write = async (data) => {
+    LOG.info("Writting to github:", data);
     let result = await r(createGithubHeaders('GET', `${settings.GITHUB_API_URL}/lpitaso/gists`));
     let gists = JSON.parse(result);
-    LOG.info("GISTS", gists);
 
     let gist;
     if (gists.length === 0)
@@ -94,7 +91,6 @@ const write = async (data) => {
     else
         gist = gists[0];
 
-    LOG.info(gist);
     LOG.info(gist.id);
     LOG.info(gist.url);
 
@@ -140,18 +136,24 @@ module.exports = {
         LOG.info(`Current Floating Ips:`, currentFloatingIps);
 
         // DELETE Original Floating IP
-        let floatingIp = currentFloatingIps.find(floatingIp => String(floatingIp.droplet.id) === String(dropletId));
+        let floatingIp = currentFloatingIps.find(floatingIp => {
+            if (!floatingIp.droplet)
+                return false;
+            return String(floatingIp.droplet.id) === String(dropletId)
+        });
         if (floatingIp !== undefined) {
             LOG.info("Trying to Delete old Floating IP:", floatingIp.ip);
             let headers = createHeaders('DELETE', `${settings.API_URL}/v2/floating_ips/${floatingIp.ip}`);
+            LOG.info(`Floating IP: ${floatingIp.ip} deleted...`);
             try {
                 await r(headers);
+                sleep(30); // We sleep giving the chance to digital ocean to full fill the task
             } catch (err) {
                 LOG.info(`Unavailable to delete a Floating IP: ${err.message}`);
             }
         }
-        LOG.info(`Floating IP: ${floatingIp.ip} deleted... Creating a new one`);
-        sleep(60); // We sleep giving the chance to digital ocean to fullfill the task
+        LOG.info(`...Creating a new one`);
+
         // Creating new floating IP
         let options = createHeaders('POST', `${settings.API_URL}/v2/floating_ips`, {"droplet_id": dropletId});
         try {
@@ -166,13 +168,13 @@ module.exports = {
         const ip = floatingIp.floating_ip.ip;
         LOG.info(`encrypting: ${ip} ...`);
         const encryptedIp = encrypt(ip);
-        LOG.info(`DONE: ${ip} ...`);
+        LOG.info(`DONE: ${ip} => ${encryptedIp} ...`);
 
         //TEST
         const decryptedIp = decrypt(encryptedIp);
         LOG.info("Testing cipher");
-        if (decryptedIp !== encryptedIp) {
-            LOG.info(`Somehting went wrong ciphering: ${encryptedIp} !=== ${decryptedIp}`);
+        if (decryptedIp !== ip) {
+            LOG.info(`Somehting went wrong ciphering: ${ip} !== ${decryptedIp}`);
         }
 
         await write(encryptedIp);
